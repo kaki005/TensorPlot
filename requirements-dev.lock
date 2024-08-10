@@ -62,6 +62,7 @@ nodeenv==1.9.1
 numpy==2.0.1
     # via contourpy
     # via matplotlib
+    # via opencv-python
     # via pandas
     # via pythontemplate
     # via scikit-learn
@@ -70,6 +71,8 @@ numpy==2.0.1
     # via tensorly
 omegaconf==2.3.0
     # via hydra-core
+    # via pythontemplate
+opencv-python==4.10.0.84
     # via pythontemplate
 packaging==24.1
     # via hydra-core

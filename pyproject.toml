@@ -18,6 +18,7 @@ dependencies = [
     "pandas>=2.2.2",
     "tensorly>=0.8.1",
     "pre-commit>=3.8.0",
+    "opencv-python>=4.10.0.84",
 ]
 readme = "README.md"
 requires-python = ">= 3.10"
