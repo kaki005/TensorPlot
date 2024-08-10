@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
 from PIL import Image as im
+from PIL import ImageDraw
 from PIL.Image import Image
 
 colorlist = ["r", "g", "b", "c", "m", "y", "k", "w"]
@@ -14,25 +15,33 @@ matplotlib.use("agg")
 
 
 class TensorPlot:
-    def plot_tensor(self, tensor: np.ndarray, save_path: str, shift: tuple[int, int] = (50, 50), dpi: int = 100):
-        fig_size = (6, 3)
+    def plot_tensor(self, tensor: np.ndarray, save_path: str, shift: tuple[int, int] = (30, 20), dpi: int = 100):
+        fig_size = (20, 3)
         series_num = tensor.shape[1]
         overall_img = im.new(
             "RGBA",
-            (fig_size[0] * dpi + shift[0] * series_num, fig_size[1] * dpi + shift[1] * series_num),
+            (fig_size[0] * dpi + shift[0] * series_num + 40, fig_size[1] * dpi + shift[1] * series_num + 40),
             (255, 255, 255, 255),
         )
+        plt.rcParams["xtick.direction"] = "in"
+        plt.rcParams["ytick.direction"] = "in"
+        print("overall_img =", overall_img.size)
         for i in range(series_num):
             fig: Figure = plt.figure(figsize=fig_size, dpi=dpi)
             ax = fig.add_subplot(111)  # one graph
             ax.plot(range(tensor.shape[0]), tensor[:, i])
+            ax.set_xlim(0, tensor.shape[0])
             ax.tick_params(labelbottom=False, labelleft=False, labelright=False, labeltop=False)
             fig.patch.set_alpha(0)  # make figure's background tranparent
+            # fig.subplots_adjust(left=0, right=1, bottom=0, top=1) #余白なし
+            # fig.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.95)
             image = self._plt_to_image(fig)
             image = image.convert("RGBA")
             plt.close()
-            shift = (shift[0] * i, shift[1] * i)
-            overall_img = self._overlay(image, overall_img, shift)
+            start_point = (shift[0] * (series_num - i) + 10, shift[1] * i + 10)
+            overall_img = self._overlay(image, overall_img, start_point)
+        # draw = ImageDraw.Draw(overall_img)
+        # draw.line((shift[0]*series_num, 0, 0, shift[1]*series_num),fill=(255, 255, 0), width=3)
         overall_img.save(save_path)
 
     @staticmethod
@@ -40,7 +49,7 @@ class TensorPlot:
         fig.canvas.draw()
         # Now we can save it to a numpy array.
         buf = io.BytesIO()  # インメモリのバイナリストリームを作成
-        fig.savefig(buf, format="png", dpi=dpi)  # bufに書き込み
+        fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight", pad_inches=1)  # bufに書き込み
         buf.seek(0)  # ストリーム位置を先頭に戻る
         img_arr = np.frombuffer(
             buf.getvalue(), dtype=np.uint8
