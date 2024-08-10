@@ -2,9 +2,7 @@
 name = "pythontemplate"
 version = "0.1.0"
 description = "My Python Template"
-authors = [
-    { name = "kaki005", email = "u097498f@ecs.osaka-u.ac.jp" }
-]
+authors = [{ name = "kaki005", email = "u097498f@ecs.osaka-u.ac.jp" }]
 dependencies = [
     "wandb>=0.17.6",
     "numpy>=2.0.1",
@@ -50,8 +48,8 @@ select = [
     "F",  # pyflakes
     "I",  # isort
     "B",  # flake8-bugbear
-    "C4",  # flake8-comprehensions
-    "UP",  # pyupgrade
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
 ]
 fixable = ["ALL"]
 # 除外するエラーの種類
@@ -60,10 +58,11 @@ ignore = [
     "B008",  # do not perform function calls in argument defaults
     "C901",  # too complex
     "W191",  # indentation contains tabs
-    "B904", # raise ... from ... になっていない場合のエラーを無視
-    "F401",   # imported but not used
+    "B904",  # raise ... from ... になっていない場合のエラーを無視
+    "F401",  # imported but not used
     "UP008",
     "B007",
+    "UP035", #`typing.Dict` is deprecated, use `dict` insteadß
 ]
 
 # ファイルごとのエラー除外
@@ -77,7 +76,6 @@ known-third-party = ["fastapi", "pydantic", "starlette"]
 [tool.ruff.lint.pyupgrade]
 # Python3.8互換のための設定
 keep-runtime-typing = true
-
 
 
 [tool.ruff.lint.mccabe]
