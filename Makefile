@@ -20,3 +20,7 @@ pre-commit:
 .PHONY: test
 test:
 	rye run pytest tests
+
+.PHONY: sweep
+sweep:
+	rye run wandb src/config/sweep.yaml
