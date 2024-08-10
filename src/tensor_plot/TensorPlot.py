@@ -14,19 +14,25 @@ matplotlib.use("agg")
 
 
 class TensorPlot:
-    def plot_tensor(self, tensor: np.ndarray, save_path: str, shift: tuple[int, int] = (30, 30), dpi: int = 100):
+    def plot_tensor(self, tensor: np.ndarray, save_path: str, shift: tuple[int, int] = (50, 50), dpi: int = 100):
+        fig_size = (6, 3)
         series_num = tensor.shape[1]
         overall_img = im.new(
-            "RGBA", (4 * dpi + shift[0] * series_num, 3 * dpi + shift[1] * series_num), (255, 255, 255, 255)
+            "RGBA",
+            (fig_size[0] * dpi + shift[0] * series_num, fig_size[1] * dpi + shift[1] * series_num),
+            (255, 255, 255, 255),
         )
         for i in range(series_num):
-            fig: Figure = plt.figure(figsize=(4, 3), dpi=dpi)
+            fig: Figure = plt.figure(figsize=fig_size, dpi=dpi)
             ax = fig.add_subplot(111)  # one graph
-            ax.plot(range(tensor.shape[0]), tensor[:, i], color=colorlist[i])
+            ax.plot(range(tensor.shape[0]), tensor[:, i])
             ax.tick_params(labelbottom=False, labelleft=False, labelright=False, labeltop=False)
+            fig.patch.set_alpha(0)  # make figure's background tranparent
             image = self._plt_to_image(fig)
-            image = self._transparent(image)
-            overall_img = self._overlay(image, overall_img, shift=(shift[0] * i, shift[1] * i))
+            image = image.convert("RGBA")
+            plt.close()
+            shift = (shift[0] * i, shift[1] * i)
+            overall_img = self._overlay(image, overall_img, shift)
         overall_img.save(save_path)
 
     @staticmethod
@@ -40,22 +46,9 @@ class TensorPlot:
             buf.getvalue(), dtype=np.uint8
         )  # メモリからバイナリデータを読み込み, numpy array 形式に変換
         buf.close()  # ストリームを閉じる(flushする)
-        img = cv.imdecode(img_arr, 1)  # 画像のバイナリデータを復元する
-        img = cv.cvtColor(img, cv.COLOR_BGR2RGB)  # cv2.imread() はBGR形式で読み込むのでRGBにする.
+        img = cv.imdecode(img_arr, -1)  # 画像のバイナリデータを復元する
+        img = cv.cvtColor(img, cv.COLOR_BGRA2RGBA)  # cv2.imread() はBGR形式で読み込むのでRGBにする.
         return im.fromarray(img)
-
-    @staticmethod
-    def select_color(color):
-        mean = np.array(color).mean(axis=0)
-        return (255, 255, 255, 0) if mean >= 250 else color
-
-    def _transparent(self, src: Image) -> Image:
-        src = src.convert("RGBA")
-        w, h = src.size
-        for y in range(h):
-            for x in range(w):
-                src.putpixel((x, y), self.select_color(src.getpixel((x, y))))
-        return src
 
     @staticmethod
     def _overlay(fore_img: Image, back_img: Image, shift: tuple[int, int]) -> Image:
