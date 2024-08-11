@@ -12,9 +12,9 @@ def main():
     plot = TensorPlot()
     for i, series in enumerate(tensors):
         labels = ["series1", "series2", "series3", "series4"] if i == len(tensors) - 1 else []
-        plot.add_series(Series(times, series.transpose(), title=f"country {i}", labels=labels, linewidth=0.5))
+        plot.add_series(Series(times, series.transpose(), title=f"country {i}", labels=labels, linewidth=0.7))
     plot.set_alpha(220)
-    plot.plot_tensor("outputs/test2.png")
+    plot.plot_tensor("outputs/sample2.png")
 
 
 if __name__ == "__main__":
