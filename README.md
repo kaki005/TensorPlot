@@ -2,5 +2,12 @@
 - This application plots a third-order tensor like (time, location, variable).
 - This is still under development.
 
+## Customize
+- linewidth
+- label
+- title
+- length
+- figsize
+
 ## output
-![](./outputs/test.png)
+![](./outputs/sample1.png)

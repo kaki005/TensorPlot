@@ -10,6 +10,8 @@ from PIL import Image as im
 from PIL import ImageDraw
 from PIL.Image import Image
 
+from .Series import Series
+
 colorlist = ["r", "g", "b", "c", "m", "y", "k", "w"]
 matplotlib.use("agg")
 
@@ -17,32 +19,52 @@ matplotlib.use("agg")
 class TensorPlot:
     def __init__(self) -> None:
         self._alpha = 255
+        self.series_list: list[Series] = []
         """transparency in chart.(0-255)"""
 
+    # ======================
+    # public
+    # ======================
     def set_alpha(self, alpha: int):
         """set transparency in chart.(0-255)"""
         assert alpha >= 0 and alpha < 255
         self._alpha = alpha
 
-    def plot_tensor(self, tensor: np.ndarray, save_path: str, shift: tuple[int, int] = (30, 20), dpi: int = 100):
-        fig_size = (20, 3)
-        series_num = tensor.shape[1]
+    def add_series(self, series: Series):
+        self.series_list.append(series)
+
+    def plot_tensor(self, save_path: str, shift: tuple[int, int] = (30, 30), dpi: int = 100):
+        overall_w, overall_h = 0, 0
+        series_num = len(self.series_list)
+        for i, series in enumerate(self.series_list):
+            start_point = (shift[0] * (series_num - i), shift[1] * i)
+            overall_w = max(overall_w, series.fig_size[0] * dpi + start_point[0] + 100)
+            overall_h = max(overall_h, series.fig_size[1] * dpi + start_point[1] + 100)
         overall_img = im.new(
             "RGBA",
-            (fig_size[0] * dpi + shift[0] * series_num + 40, fig_size[1] * dpi + shift[1] * series_num + 20),
+            (overall_w, overall_h),
             (255, 255, 255, 255),
         )
         plt.rcParams["xtick.direction"] = "in"
         plt.rcParams["ytick.direction"] = "in"
         # print("overall_img =", overall_img.size)
-        for i in range(series_num):
-            fig: Figure = plt.figure(figsize=fig_size, dpi=dpi)
+        for i, series in enumerate(self.series_list):
+            fig: Figure = plt.figure(figsize=series.fig_size, dpi=dpi)
             ax = fig.add_subplot(111)  # one graph
-            ax.plot(range(tensor.shape[0]), tensor[:, i])
-            ax.set_xlim(0, tensor.shape[0])
             ax.tick_params(labelbottom=False, labelleft=False, labelright=False, labeltop=False)
+            if len(series.labels) > 0:
+                for y, label in zip(series.y.transpose(), series.labels, strict=False):
+                    ax.plot(series.x, y, label=label, linewidth=series.linewidth)
+                ax.legend()
+            else:
+                ax.plot(series.x, series.y, linewidth=series.linewidth)
+            ax.set_xlim(series.x.min(), series.x.max())
+            if series.title != "":
+                ax.set_title(series.title)
+            # fig.subplots_adjust(left=0.1, right=0.95, bottom=0.2, top=0.95)
             fig.patch.set_alpha(0)  # make figure's background tranparent
-            fig.subplots_adjust(left=0.1, right=0.95, bottom=0.2, top=0.95)
+            plt.tight_layout()
+
             image = self._plt_to_image(fig)
             plt.close()
 
@@ -55,6 +77,9 @@ class TensorPlot:
         # draw.line((shift[0]*series_num, 0, 0, shift[1]*series_num),fill=(255, 255, 0), width=3)
         overall_img.save(save_path)
 
+    # ======================
+    # private
+    # ======================
     def _select_color(self, color):
         mean = np.array(color).mean(axis=0)
         return (255, 255, 255, self._alpha) if mean >= 250 else color
