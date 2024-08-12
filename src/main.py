@@ -16,7 +16,7 @@ def main():
     tpl = TensorPlot()
     for i, series in enumerate(tensors):
         series = Series(times, series.transpose(), linewidth=0.7)
-        series.set_title(f"country {i}")
+        series.set_title(f"country {i}", font_size=10)
         for j in range(5):
             series.draw_background(j * 30, (j + 1) * 30, cm_colors[i + j], alpha=0.3)
         tpl.add_series(series)
