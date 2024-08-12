@@ -2,18 +2,17 @@ import io
 from typing import Dict, List, Tuple
 
 import cv2 as cv
-import matplotlib
+import matplotlib as mpl
+import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from PIL import Image as im
 from PIL import ImageDraw
 from PIL.Image import Image
 
-from .Series import Series
-
-colorlist = ["r", "g", "b", "c", "m", "y", "k", "w"]
-matplotlib.use("agg")
+from .Series import Regime, Series
 
 
 class TensorPlot:
@@ -58,9 +57,12 @@ class TensorPlot:
                 ax.legend()
             else:
                 ax.plot(series.x, series.y, linewidth=series.linewidth)
+            if len(series.regimes) > 0:
+                for regime in series.regimes:
+                    self._draw_background(ax, regime)
             ax.set_xlim(series.x.min(), series.x.max())
             if series.title != "":
-                ax.set_title(series.title)
+                ax.set_title(series.title, fontsize=series.title_font)
             # fig.subplots_adjust(left=0.1, right=0.95, bottom=0.2, top=0.95)
             fig.patch.set_alpha(0)  # make figure's background tranparent
             plt.tight_layout()
@@ -80,6 +82,20 @@ class TensorPlot:
     # ======================
     # private
     # ======================
+    @staticmethod
+    def _draw_background(ax: Axes, regime: Regime):
+        r = patches.Rectangle(
+            xy=(regime.x1, ax.get_ylim()[0]),
+            width=(regime.x2 - regime.x1),
+            height=abs(ax.get_ylim()[0]) + ax.get_ylim()[1],
+            fc=regime.color,
+            ec=regime.edge_color,
+            linewidth=0.1,
+            fill=regime.fill,
+            alpha=regime.alpha,
+        )
+        ax.add_patch(r)
+
     def _select_color(self, color):
         mean = np.array(color).mean(axis=0)
         return (255, 255, 255, self._alpha) if mean >= 250 else color
