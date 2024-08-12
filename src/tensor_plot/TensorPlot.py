@@ -65,7 +65,7 @@ class TensorPlot:
         # draw.line((shift[0]*series_num, 0, 0, shift[1]*series_num),fill=(255, 255, 0), width=3)
         overall_img.save(save_path)
 
-    def plot_flat(self, save_path: str, dpi: int = 100, fig_size: tuple[int, int] = (10, 10)):
+    def plot_flat(self, save_path: str, dpi: int = 100, fig_size: tuple[int, int] = (6, 6)):
         series_num = len(self.series_list)
         fig, axes = plt.subplots(nrows=series_num, ncols=1, sharex=False, dpi=dpi, figsize=fig_size)
         for i, series in enumerate(self.series_list):
