@@ -3,11 +3,13 @@
 - This is still under development.
 
 ## Customize
+- shift between pictures
 - linewidth
 - label
 - title
 - length
 - figsize
+- background color
 
 ## output
 ### Simple Tensor
@@ -29,6 +31,13 @@
 
 ### Regime Plot
 ``` python
+    # colormap
+    cmap_names = ["tab20", "tab20b", "tab20c", "Set3"]
+    cm_colors = []
+    for cmap_name in cmap_names:
+    cmap = matplotlib.colormaps.get_cmap(cmap_name)
+    cm_colors += list(cmap.colors)
+    # plot
     times = np.arange(1, 150, 0.3)
     tensors = np.array([[sin_func(times, 0.1 * i * j) for j in range(4)] for i in range(5)])
     tpl = TensorPlot()
