@@ -46,27 +46,13 @@ class TensorPlot:
         )
         plt.rcParams["xtick.direction"] = "in"
         plt.rcParams["ytick.direction"] = "in"
-        # print("overall_img =", overall_img.size)
         for i, series in enumerate(self.series_list):
             fig: Figure = plt.figure(figsize=series.fig_size, dpi=dpi)
             ax = fig.add_subplot(111)  # one graph
             ax.tick_params(labelbottom=False, labelleft=False, labelright=False, labeltop=False)
-            if len(series.labels) > 0:
-                for y, label in zip(series.y.transpose(), series.labels, strict=False):
-                    ax.plot(series.x, y, label=label, linewidth=series.linewidth)
-                ax.legend()
-            else:
-                ax.plot(series.x, series.y, linewidth=series.linewidth)
-            if len(series.regimes) > 0:
-                for regime in series.regimes:
-                    self._draw_background(ax, regime)
-            ax.set_xlim(series.x.min(), series.x.max())
-            if series.title != "":
-                ax.set_title(series.title, fontsize=series.title_font)
+            self._plot_signle(ax, series)
             # fig.subplots_adjust(left=0.1, right=0.95, bottom=0.2, top=0.95)
             fig.patch.set_alpha(0)  # make figure's background tranparent
-            plt.tight_layout()
-
             image = self._plt_to_image(fig)
             plt.close()
 
@@ -79,9 +65,33 @@ class TensorPlot:
         # draw.line((shift[0]*series_num, 0, 0, shift[1]*series_num),fill=(255, 255, 0), width=3)
         overall_img.save(save_path)
 
+    def plot_flat(self, save_path: str, dpi: int = 100, fig_size: tuple[int, int] = (10, 10)):
+        series_num = len(self.series_list)
+        fig, axes = plt.subplots(nrows=series_num, ncols=1, sharex=False, dpi=dpi, figsize=fig_size)
+        for i, series in enumerate(self.series_list):
+            self._plot_signle(axes[i], series)
+        plt.tight_layout()
+        plt.savefig(save_path)
+        plt.close()
+
     # ======================
     # private
     # ======================
+    def _plot_signle(self, ax: Axes, series: Series):
+        if len(series.labels) > 0:
+            for y, label in zip(series.y.transpose(), series.labels, strict=False):
+                ax.plot(series.x, y, label=label, linewidth=series.linewidth)
+            ax.legend()
+        else:
+            ax.plot(series.x, series.y, linewidth=series.linewidth)
+        if len(series.regimes) > 0:
+            for regime in series.regimes:
+                self._draw_background(ax, regime)
+        ax.set_xlim(series.x.min(), series.x.max())
+        if series.title != "":
+            ax.set_title(series.title, fontsize=series.title_font)
+        plt.tight_layout()
+
     @staticmethod
     def _draw_background(ax: Axes, regime: Regime):
         r = patches.Rectangle(

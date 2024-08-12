@@ -16,13 +16,11 @@ def main():
     tpl = TensorPlot()
     for i, series in enumerate(tensors):
         series = Series(times, series.transpose(), linewidth=0.7)
-        labels = ["series1", "series2", "series3", "series4"] if i == len(tensors) - 1 else []
-        series.set_legend(labels)
+        series.set_title(f"country {i}")
         for j in range(5):
             series.draw_background(j * 30, (j + 1) * 30, cm_colors[i + j], alpha=0.3)
         tpl.add_series(series)
-    tpl.set_alpha(220)
-    tpl.plot_tensor("outputs/sample2.png")
+    tpl.plot_flat("outputs/sample3.png")
 
 
 if __name__ == "__main__":
