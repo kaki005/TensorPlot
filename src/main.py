@@ -1,6 +1,6 @@
 import matplotlib
 import numpy as np
-from tensor_plot import Series, TensorPlot
+from tensor_plot import DenseTensor, Event, EventTensor, Series
 
 matplotlib.use("agg")
 cmap_names = ["tab20", "tab20b", "tab20c", "Set3"]
@@ -13,7 +13,7 @@ for cmap_name in cmap_names:
 def main():
     times = np.arange(1, 150, 0.3)
     tensors = np.array([[np.sin(0.1 * i * j * times) for j in range(4)] for i in range(5)])
-    tpl = TensorPlot()
+    tpl = DenseTensor()
     for i, series in enumerate(tensors):
         series = Series(times, series.transpose(), linewidth=0.7)
         series.set_title(f"country {i}", font_size=10)

@@ -15,7 +15,7 @@ from PIL.Image import Image
 from .Series import Regime, Series
 
 
-class TensorPlot:
+class DenseTensor:
     def __init__(self) -> None:
         self._alpha = 255
         self.series_list: list[Series] = []
