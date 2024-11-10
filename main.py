@@ -1,5 +1,6 @@
 import matplotlib
 import numpy as np
+
 from tensor_plot import DenseTensor, Event, EventTensor, Series
 
 matplotlib.use("agg")
