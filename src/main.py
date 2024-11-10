@@ -1,7 +1,6 @@
 import matplotlib
 import numpy as np
-
-from tensorplot import DenseTensor, Event, EventTensor, Series
+from tensor_plot import DenseTensor, Event, EventTensor, Series
 
 matplotlib.use("agg")
 cmap_names = ["tab20", "tab20b", "tab20c", "Set3"]
