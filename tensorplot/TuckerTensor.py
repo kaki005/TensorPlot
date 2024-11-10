@@ -12,7 +12,7 @@ from PIL import Image as im
 from PIL import ImageDraw
 from PIL.Image import Image
 
-from tensor_plot.DenseTensor import BaseTensor
+from tensorplot.DenseTensor import BaseTensor
 
 from .Series import Regime, Series
 
