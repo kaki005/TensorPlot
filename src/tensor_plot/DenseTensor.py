@@ -1,5 +1,5 @@
 import io
-from typing import Dict, List, Tuple
+from abc import ABC, abstractmethod
 
 import cv2 as cv
 import matplotlib as mpl
@@ -15,9 +15,53 @@ from PIL.Image import Image
 from .Series import Regime, Series
 
 
-class DenseTensor:
+class BaseTensor:
     def __init__(self) -> None:
         self._alpha = 255
+
+    def _select_color(self, color):
+        mean = np.array(color).mean(axis=0)
+        return (255, 255, 255, self._alpha) if mean >= 250 else color
+
+    def _transparent(self, src: Image) -> Image:
+        src = src.convert("RGBA")
+        w, h = src.size
+        for y in range(h):
+            for x in range(w):
+                src.putpixel((x, y), self._select_color(src.getpixel((x, y))))
+        return src
+
+    @staticmethod
+    def _plt_to_image(fig: Figure, dpi: int = 100) -> Image:
+        fig.canvas.draw()
+        # Now we can save it to a numpy array.
+        buf = io.BytesIO()  # インメモリのバイナリストリームを作成
+        fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight", pad_inches=1)  # bufに書き込み
+        buf.seek(0)  # ストリーム位置を先頭に戻る
+        img_arr = np.frombuffer(
+            buf.getvalue(), dtype=np.uint8
+        )  # メモリからバイナリデータを読み込み, numpy array 形式に変換
+        buf.close()  # ストリームを閉じる(flushする)
+        img = cv.imdecode(img_arr, -1)  # 画像のバイナリデータを復元する
+        img = cv.cvtColor(img, cv.COLOR_BGRA2RGBA)  # cv2.imread() はBGR形式で読み込むのでRGBにする.
+        return im.fromarray(img)
+
+    @staticmethod
+    def _overlay(fore_img: Image, back_img: Image, shift: tuple[int, int]) -> Image:
+        """
+        fore_img：合成する画像
+        back_img：背景画像
+        shift：左上を原点としたときの移動量(x, y)
+        """
+        composite_img = im.new("RGBA", back_img.size, (255, 255, 255, 0))
+        composite_img.paste(fore_img, shift, fore_img)
+        result_image = im.alpha_composite(back_img, composite_img)
+        return result_image
+
+
+class DenseTensor(BaseTensor):
+    def __init__(self) -> None:
+        super(DenseTensor).__init__()
         self.series_list: list[Series] = []
         """transparency in chart.(0-255)"""
 
@@ -105,42 +149,3 @@ class DenseTensor:
             alpha=regime.alpha,
         )
         ax.add_patch(r)
-
-    def _select_color(self, color):
-        mean = np.array(color).mean(axis=0)
-        return (255, 255, 255, self._alpha) if mean >= 250 else color
-
-    def _transparent(self, src: Image) -> Image:
-        src = src.convert("RGBA")
-        w, h = src.size
-        for y in range(h):
-            for x in range(w):
-                src.putpixel((x, y), self._select_color(src.getpixel((x, y))))
-        return src
-
-    @staticmethod
-    def _plt_to_image(fig: Figure, dpi: int = 100) -> Image:
-        fig.canvas.draw()
-        # Now we can save it to a numpy array.
-        buf = io.BytesIO()  # インメモリのバイナリストリームを作成
-        fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight", pad_inches=1)  # bufに書き込み
-        buf.seek(0)  # ストリーム位置を先頭に戻る
-        img_arr = np.frombuffer(
-            buf.getvalue(), dtype=np.uint8
-        )  # メモリからバイナリデータを読み込み, numpy array 形式に変換
-        buf.close()  # ストリームを閉じる(flushする)
-        img = cv.imdecode(img_arr, -1)  # 画像のバイナリデータを復元する
-        img = cv.cvtColor(img, cv.COLOR_BGRA2RGBA)  # cv2.imread() はBGR形式で読み込むのでRGBにする.
-        return im.fromarray(img)
-
-    @staticmethod
-    def _overlay(fore_img: Image, back_img: Image, shift: tuple[int, int]) -> Image:
-        """
-        fore_img：合成する画像
-        back_img：背景画像
-        shift：左上を原点としたときの移動量(x, y)
-        """
-        composite_img = im.new("RGBA", back_img.size, (255, 255, 255, 0))
-        composite_img.paste(fore_img, shift, fore_img)
-        result_image = im.alpha_composite(back_img, composite_img)
-        return result_image

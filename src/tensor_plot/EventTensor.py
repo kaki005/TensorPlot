@@ -4,6 +4,8 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 
+from .DenseTensor import BaseTensor
+
 
 class Entry:
     def __init__(self, index: np.ndarray):
@@ -24,8 +26,9 @@ class Event:
         self.datetime: datetime = dt
 
 
-class EventTensor:
+class EventTensor(BaseTensor):
     def __init__(self, start_date: datetime, ndims, dic: dict[str, dict[str, int]]):
+        super(EventTensor).__init__()
         self.events: list[Event] = []
         self.start_date: datetime = start_date
         self.ndims = ndims
