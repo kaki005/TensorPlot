@@ -4,7 +4,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .DenseTensor import BaseTensor
+from .dense import BaseTensor
 
 
 class Entry:
