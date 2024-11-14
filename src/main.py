@@ -1,7 +1,7 @@
 import matplotlib
 import numpy as np
 import tensorly.decomposition as decomp
-from tensor_plot import DenseTensor, Event, EventTensor, Series, TuckerTensor
+from tensor_plot import DenseTensor, Entry, Event, EventTensor, Series, TuckerTensor
 
 matplotlib.use("agg")
 cmap_names = ["tab20", "tab20b", "tab20c", "Set3"]
@@ -28,6 +28,35 @@ def main():
     core, factors = decomp.tucker(tensor, rank=[5, 5, 5])
     tucker = TuckerTensor(core, factors)
     tucker.plot_flat("outputs/sample4.png")
+
+    # event tensor
+    ndims = np.array([6, 4])
+    display_name_list = [[f"mode{i}_{j}" for j in range(dim)] for i, dim in enumerate(ndims)]
+    events = EventTensor(ndims, display_name_list)
+    events.append(
+        Event(
+            ndims,
+            [
+                Entry(np.array([4, 2]), 1),
+                Entry(np.array([5, 2]), 2),
+                Entry(np.array([0, 1]), 2),
+            ],
+            3.3,
+        )
+    )
+    events.append(
+        Event(
+            ndims,
+            [
+                Entry(np.array([3, 3]), 3),
+                Entry(np.array([4, 2]), 5),
+                Entry(np.array([0, 1]), 5),
+            ],
+            3.7,
+        )
+    )
+    events.plot("outputs/sample5.png")
+    events.plot_mode(0, "outputs/sample6.png")
 
 
 if __name__ == "__main__":
