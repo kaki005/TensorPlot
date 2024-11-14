@@ -56,12 +56,12 @@ select = [
 fixable = ["ALL"]
 # 除外するエラーの種類
 ignore = [
-    "E501",  # line too long, handled by black
-    "B008",  # do not perform function calls in argument defaults
-    "C901",  # too complex
-    "W191",  # indentation contains tabs
-    "B904",  # raise ... from ... になっていない場合のエラーを無視
-    "F401",  # imported but not used
+    "E501", # line too long, handled by black
+    "B008", # do not perform function calls in argument defaults
+    "C901", # too complex
+    "W191", # indentation contains tabs
+    "B904", # raise ... from ... になっていない場合のエラーを無視
+    # "F401",  # imported but not used
     "UP008",
     "B007",
     "UP035", #`typing.Dict` is deprecated, use `dict` insteadß

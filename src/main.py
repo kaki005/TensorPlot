@@ -55,7 +55,8 @@ def main():
             3.7,
         )
     )
-    events.plot("outputs/sample5.png")
+    events.set_titles(["mode1", "mode2"])
+    events.plot("outputs/sample5.png", t_range=[3, 4])
     events.plot_mode(0, "outputs/sample6.png")
 
 
