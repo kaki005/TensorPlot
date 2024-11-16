@@ -1,26 +1,12 @@
-import io
-from abc import ABC
-
-import cv2 as cv
-import matplotlib as mpl
-import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
-import tensorly as tl
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
-from PIL import Image as im
-from PIL import ImageDraw
-from PIL.Image import Image
 
 from tensor_plot.dense import BaseTensor
-
-from .Series import Regime, Series
 
 
 class TuckerTensor(BaseTensor):
     def __init__(self, core: np.ndarray, factors: list[np.ndarray]):
-        super(TuckerTensor).__init__()
+        super().__init__()
         self.factors: list[np.ndarray] = factors
         self.core: np.ndarray = core
         """core tensor"""

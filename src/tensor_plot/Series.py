@@ -19,7 +19,7 @@ class Series:
         self.title_font = 12
 
     def set_title(self, title: str, font_size: int = 12):
-        self.title: str = title
+        self.title = title
         self.title_font = font_size
 
     def set_legend(self, labels: list[str]):

@@ -1,15 +1,12 @@
 import io
-from abc import ABC, abstractmethod
 
 import cv2 as cv
-import matplotlib as mpl
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from PIL import Image as im
-from PIL import ImageDraw
 from PIL.Image import Image
 
 from .Series import Regime, Series
@@ -61,7 +58,7 @@ class BaseTensor:
 
 class DenseTensor(BaseTensor):
     def __init__(self) -> None:
-        super(DenseTensor).__init__()
+        super().__init__()
         self.series_list: list[Series] = []
         """transparency in chart.(0-255)"""
 

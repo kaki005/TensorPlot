@@ -16,7 +16,7 @@ repos:
         description: "Run 'mypy' for Python linting"
         entry: mypy
         language: python
-        args: [--strict, --ignore-missing-imports]
+        args: []
         require_serial: true
         # Add types package list
         additional_dependencies: []

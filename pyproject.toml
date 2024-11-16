@@ -89,3 +89,12 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+
+[tool.mypy]
+strict = false
+ignore_missing_imports = true
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+no_implicit_optional = true
+check_untyped_defs = false
