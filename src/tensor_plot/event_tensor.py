@@ -155,10 +155,10 @@ def dataframe_to_event_tensor(
     data[categorical_idxs] = oe.fit_transform(data[categorical_idxs])
     data[categorical_idxs] = data[categorical_idxs].astype(int)
     data = data.reset_index(drop=True)
-    ndims = data.max().values + 1
+    ndims = data[categorical_idxs].max().values + 1
     event_tensors: EventTensor = EventTensor(ndims, oe.categories_, start)
     for dt in data[time_idx].unique():
-        current = data[data[time_idx] == dt]
+        current = data[data[time_idx] == dt].reset_index()
         timestamp: Timestamp = current[f"old_{time_idx}"][0]
         rows_num = current.shape[0]
         if rows_num > 1:
