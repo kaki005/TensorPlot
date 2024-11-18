@@ -1,9 +1,11 @@
 import pickle
 from datetime import datetime
 
+import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from jax.tree_util import register_pytree_node_class, register_static
 from mpl_toolkits.mplot3d import Axes3D
 from pandas import Timestamp
 from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
@@ -11,6 +13,7 @@ from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
 from .dense import BaseTensor
 
 
+@register_static
 class Entry:
     def __init__(self, index: np.ndarray, count: int):
         self.index: np.ndarray = index
@@ -18,6 +21,7 @@ class Entry:
         self.count: int = count
 
 
+@register_pytree_node_class
 class Event:
     """class of event at time t"""
 
@@ -36,22 +40,87 @@ class Event:
             for entry in entries:
                 count[entry.index[i]] += 1
             self.mode_counts.append(count)
+        # create index list
+        indexes = []
+        for entry in self.entries:
+            for _ in range(entry.count):
+                indexes.append(entry.index)
+        self.indexes: jnp.ndarray = jnp.array(indexes)
+        """(データ数, データのindex)"""
+
+    def tree_flatten(self):
+        """Specifies a flattening recipe.
+        Returns:
+            a pair of an iterable with the children to be flattened recursively,
+            and some opaque auxiliary data to pass back to the unflattening recipe.
+            The auxiliary data is stored in the treedef for use during unflattening.
+            The auxiliary data could be used, e.g., for dictionary keys.
+        """
+        aux_data = (self.ndims, self.t, self.datetime)
+        return self.entries, aux_data
+
+    @classmethod
+    def tree_unflatten(cls, aux_data: tuple[np.ndarray, float, Timestamp | None], children: list[Entry]):
+        """Specifies an unflattening recipe.
+        Params:
+            cls: type of class
+            aux_data: the opaque data that was specified during flattening of the
+            current treedef.
+            children: the unflattened children
+        Returns:
+            a re-constructed object of the registered type, using the specified
+            children and auxiliary data.
+        """
+        (dims, t, dt) = aux_data
+        return cls(dims, children, t, dt)
 
 
+@register_pytree_node_class
 class EventTensor(BaseTensor):
-    def __init__(self, ndims, display_name_list: list[list[str]] | None = None, start_date: datetime | None = None):
+    def __init__(self, ndims: np.ndarray, columns: list[list[str]] | None = None, st_date: datetime | None = None):
         super().__init__()
         self.events: list[Event] = []
-        self.start_date: datetime | None = start_date
-        self.ndims = ndims
-        self.display_name_list: list[list[str]] | None = display_name_list
+        self.st_date: datetime | None = st_date
+        """start datetime"""
+        self.ndims: np.ndarray = ndims
+        self.columns: list[list[str]] | None = columns
         """(mode, mode index, display name)"""
-        self.t_list: list[float] = []
         self.mode_titles: list[str] | None = None
+
+    def tree_flatten(self):
+        """Specifies a flattening recipe.
+        Returns:
+            a pair of an iterable with the children to be flattened recursively,
+            and some opaque auxiliary data to pass back to the unflattening recipe.
+            The auxiliary data is stored in the treedef for use during unflattening.
+            The auxiliary data could be used, e.g., for dictionary keys.
+        """
+        aux_data = (self.ndims, self.columns, self.st_date)
+        return self.events, aux_data
+
+    @classmethod
+    def tree_unflatten(
+        cls,
+        aux_data: tuple[np.ndarray, list[list[str]] | None, datetime | None],
+        children: list[Event],
+    ):
+        """Specifies an unflattening recipe.
+        Params:
+            cls: type of class
+            aux_data: the opaque data that was specified during flattening of the
+            current treedef.
+            children: the unflattened children
+        Returns:
+            a re-constructed object of the registered type, using the specified
+            children and auxiliary data.
+        """
+        (ndims, columns, start_date) = aux_data
+        instance = cls(ndims, columns, start_date)
+        instance.events = children
+        return instance
 
     def append(self, event: Event):
         self.events.append(event)
-        self.t_list.append(event.t)
 
     def save(self, pkl_path: str):
         with open(pkl_path, "wb") as outp:
@@ -80,9 +149,9 @@ class EventTensor(BaseTensor):
         ax.set_zticks(range(self.ndims[1]))
         if t_range is not None:
             ax.set_xlim(t_range)
-        if self.display_name_list is not None:
-            ax.set_yticklabels(self.display_name_list[0])
-            ax.set_zticklabels(self.display_name_list[1])
+        if self.columns is not None:
+            ax.set_yticklabels(self.columns[0])
+            ax.set_zticklabels(self.columns[1])
 
         if self.mode_titles is None:
             ax.set_ylabel("mode 0")
@@ -100,10 +169,10 @@ class EventTensor(BaseTensor):
             for entry in event.entries:
                 for _ in range(entry.count):
                     x.append(event.t)
-                    if self.display_name_list is None:
+                    if self.columns is None:
                         y.append(float(entry.index[mode]))
                     else:
-                        y.append(self.display_name_list[mode][entry.index[mode]])
+                        y.append(self.columns[mode][entry.index[mode]])
         plt.scatter(x, y, s=circle_size)
         if self.mode_titles is not None:
             plt.ylabel(self.mode_titles[mode])
