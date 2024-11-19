@@ -5,7 +5,7 @@ import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from jax.tree_util import register_pytree_node_class, register_static
+from jax.tree_util import register_static
 from mpl_toolkits.mplot3d import Axes3D
 from pandas import Timestamp
 from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
@@ -21,7 +21,7 @@ class Entry:
         self.count: int = count
 
 
-@register_pytree_node_class
+# @register_pytree_node_class
 class Event:
     """class of event at time t"""
 
@@ -48,34 +48,34 @@ class Event:
         self.indexes: jnp.ndarray = jnp.array(indexes)
         """(データ数, データのindex)"""
 
-    def tree_flatten(self):
-        """Specifies a flattening recipe.
-        Returns:
-            a pair of an iterable with the children to be flattened recursively,
-            and some opaque auxiliary data to pass back to the unflattening recipe.
-            The auxiliary data is stored in the treedef for use during unflattening.
-            The auxiliary data could be used, e.g., for dictionary keys.
-        """
-        aux_data = (self.ndims, self.t, self.datetime)
-        return self.entries, aux_data
+    # def tree_flatten(self):
+    #     """Specifies a flattening recipe.
+    #     Returns:
+    #         a pair of an iterable with the children to be flattened recursively,
+    #         and some opaque auxiliary data to pass back to the unflattening recipe.
+    #         The auxiliary data is stored in the treedef for use during unflattening.
+    #         The auxiliary data could be used, e.g., for dictionary keys.
+    #     """
+    #     aux_data = (self.ndims, self.t, self.datetime)
+    #     return self.entries, aux_data
 
-    @classmethod
-    def tree_unflatten(cls, aux_data: tuple[np.ndarray, float, Timestamp | None], children: list[Entry]):
-        """Specifies an unflattening recipe.
-        Params:
-            cls: type of class
-            aux_data: the opaque data that was specified during flattening of the
-            current treedef.
-            children: the unflattened children
-        Returns:
-            a re-constructed object of the registered type, using the specified
-            children and auxiliary data.
-        """
-        (dims, t, dt) = aux_data
-        return cls(dims, children, t, dt)
+    # @classmethod
+    # def tree_unflatten(cls, aux_data: tuple[np.ndarray, float, Timestamp | None], children: list[Entry]):
+    #     """Specifies an unflattening recipe.
+    #     Params:
+    #         cls: type of class
+    #         aux_data: the opaque data that was specified during flattening of the
+    #         current treedef.
+    #         children: the unflattened children
+    #     Returns:
+    #         a re-constructed object of the registered type, using the specified
+    #         children and auxiliary data.
+    #     """
+    #     (dims, t, dt) = aux_data
+    #     return cls(dims, children, t, dt)
 
 
-@register_pytree_node_class
+# @register_pytree_node_class
 class EventTensor(BaseTensor):
     def __init__(self, ndims: np.ndarray, columns: list[list[str]] | None = None, st_date: datetime | None = None):
         super().__init__()
@@ -86,38 +86,41 @@ class EventTensor(BaseTensor):
         self.columns: list[list[str]] | None = columns
         """(mode, mode index, display name)"""
         self.mode_titles: list[str] | None = None
+        self.t_list: list[float] = []
+        for event in self.events:
+            self.t_list.append(event.t)
 
-    def tree_flatten(self):
-        """Specifies a flattening recipe.
-        Returns:
-            a pair of an iterable with the children to be flattened recursively,
-            and some opaque auxiliary data to pass back to the unflattening recipe.
-            The auxiliary data is stored in the treedef for use during unflattening.
-            The auxiliary data could be used, e.g., for dictionary keys.
-        """
-        aux_data = (self.ndims, self.columns, self.st_date)
-        return self.events, aux_data
+    # def tree_flatten(self):
+    #     """Specifies a flattening recipe.
+    #     Returns:
+    #         a pair of an iterable with the children to be flattened recursively,
+    #         and some opaque auxiliary data to pass back to the unflattening recipe.
+    #         The auxiliary data is stored in the treedef for use during unflattening.
+    #         The auxiliary data could be used, e.g., for dictionary keys.
+    #     """
+    #     aux_data = (self.ndims, self.columns, self.st_date)
+    #     return self.events, aux_data
 
-    @classmethod
-    def tree_unflatten(
-        cls,
-        aux_data: tuple[np.ndarray, list[list[str]] | None, datetime | None],
-        children: list[Event],
-    ):
-        """Specifies an unflattening recipe.
-        Params:
-            cls: type of class
-            aux_data: the opaque data that was specified during flattening of the
-            current treedef.
-            children: the unflattened children
-        Returns:
-            a re-constructed object of the registered type, using the specified
-            children and auxiliary data.
-        """
-        (ndims, columns, start_date) = aux_data
-        instance = cls(ndims, columns, start_date)
-        instance.events = children
-        return instance
+    # @classmethod
+    # def tree_unflatten(
+    #     cls,
+    #     aux_data: tuple[np.ndarray, list[list[str]] | None, datetime | None],
+    #     children: list[Event],
+    # ):
+    #     """Specifies an unflattening recipe.
+    #     Params:
+    #         cls: type of class
+    #         aux_data: the opaque data that was specified during flattening of the
+    #         current treedef.
+    #         children: the unflattened children
+    #     Returns:
+    #         a re-constructed object of the registered type, using the specified
+    #         children and auxiliary data.
+    #     """
+    #     (ndims, columns, start_date) = aux_data
+    #     instance = cls(ndims, columns, start_date)
+    #     instance.events = children
+    #     return instance
 
     def append(self, event: Event):
         self.events.append(event)
