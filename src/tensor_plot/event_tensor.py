@@ -87,8 +87,6 @@ class EventTensor(BaseTensor):
         """(mode, mode index, display name)"""
         self.mode_titles: list[str] | None = None
         self.t_list: list[float] = []
-        for event in self.events:
-            self.t_list.append(event.t)
 
     # def tree_flatten(self):
     #     """Specifies a flattening recipe.
@@ -124,6 +122,7 @@ class EventTensor(BaseTensor):
 
     def append(self, event: Event):
         self.events.append(event)
+        self.t_list.append(event.t)
 
     def save(self, pkl_path: str):
         with open(pkl_path, "wb") as outp:
