@@ -15,37 +15,53 @@ from .dense import BaseTensor
 
 @register_static
 class Entry:
-    def __init__(self, index: np.ndarray, count: int):
+    def __init__(self, index: np.ndarray, count: int, t: float):
         self.index: np.ndarray = index
         """(モード, 各モードのインデックス)"""
         self.count: int = count
+        """count of index time"""
+        self.t: float = t
+        """event occurrence time"""
 
 
 class Event:
-    """class of event at time t"""
+    """Set of event entries that occurred at the same time"""
 
     def __init__(self, ndims, entries: list[Entry], t: float, dt: Timestamp | None = None):
         self.t: float = t
-        """event datetime"""
+        """event occurrence time"""
         self.ndims = ndims
+        """(mode, dimension of mode)"""
         self.entries: list[Entry] = entries
-        """(イベント数, イベントの各モードインデックス)"""
-        self.mode_counts: list[np.ndarray] = []
-        """(モード, モードの各インデックスの出現回数)"""
+        """list of index"""
         self.datetime: Timestamp | None = dt
-        # calc of mode counts
+
+    @property
+    def count(self) -> int:
+        count = 0
+        for entry in self.entries:
+            count += entry.count
+        return count
+
+    @property
+    def mode_counts(self) -> list[np.ndarray]:
+        """(mode, number of occurrences of each index in the mode)"""
+        mode_counts: list[np.ndarray] = []
         for i, dim in enumerate(self.ndims):
             count = np.zeros(dim)
-            for entry in entries:
+            for entry in self.entries:
                 count[entry.index[i]] += 1
-            self.mode_counts.append(count)
-        # create index list
+            mode_counts.append(count)
+        return mode_counts
+
+    @property
+    def indexes(self) -> jnp.ndarray:
+        """(entry num, index of the entry)"""
         indexes = []
         for entry in self.entries:
             for _ in range(entry.count):
                 indexes.append(entry.index)
-        self.indexes: jnp.ndarray = jnp.array(indexes)
-        """(データ数, データのindex)"""
+        return jnp.array(indexes)
 
 
 class EventTensor(BaseTensor):
@@ -58,11 +74,13 @@ class EventTensor(BaseTensor):
         self.columns: list[list[str]] | None = columns
         """(mode, mode index, display name)"""
         self.mode_titles: list[str] | None = None
-        self.t_list: list[float] = []
+
+    def tlist(self) -> list[float]:
+        """list of event occurene time"""
+        return [event.t for event in self.events]
 
     def append(self, event: Event):
         self.events.append(event)
-        self.t_list.append(event.t)
 
     def save(self, pkl_path: str):
         with open(pkl_path, "wb") as outp:
@@ -196,8 +214,16 @@ def rows_to_event(t: float, rows, targets: list[str], ndims, quatntity_idx: str 
     """
     entries: list[Entry] = []
     for row in rows:
-        if quatntity_idx is None:
-            entries.append(Entry(np.array([row.loc[col] for col in targets]), int(row[quatntity_idx])))
+        if quatntity_idx is not None:
+            entries.append(
+                Entry(
+                    np.array([row.loc[col] for col in targets]),
+                    int(
+                        row[quatntity_idx],
+                    ),
+                    t,
+                )
+            )
         else:
-            entries.append(Entry(np.array([row.loc[col] for col in targets]), 1))
+            entries.append(Entry(np.array([row.loc[col] for col in targets]), 1, t))
     return Event(ndims, entries, t, timestamp)
