@@ -75,6 +75,7 @@ class EventTensor(BaseTensor):
         """(mode, mode index, display name)"""
         self.mode_titles: list[str] | None = None
 
+    @property
     def tlist(self) -> list[float]:
         """list of event occurene time"""
         return [event.t for event in self.events]
