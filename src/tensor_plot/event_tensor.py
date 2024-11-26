@@ -165,8 +165,11 @@ def dataframe_to_event_tensor(
         tuple[EventTensor, OrdinalEncoder,LabelEncoder]: (event_tensor, encoder)
     """
     data = given_data.copy(deep=True)
-    data = data.dropna(subset=(categorical_idxs + [time_idx]))
-    data = data[[time_idx] + categorical_idxs]
+    target_col = categorical_idxs + [time_idx]
+    if quatntity_idx is not None:
+        target_col += [quatntity_idx]
+    data = data.dropna(subset=(target_col))
+    data = data[target_col]
 
     # Encode timestamps
     data[time_idx] = pd.to_datetime(data[time_idx])
