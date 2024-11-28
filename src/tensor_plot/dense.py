@@ -131,6 +131,8 @@ class DenseTensor(BaseTensor):
         ax.set_xlim(series.x.min(), series.x.max())
         if series.title != "":
             ax.set_title(series.title, fontsize=series.title_font)
+        if series.ylabel is not None:
+            ax.set_ylabel(series.ylabel)
         plt.tight_layout()
 
     @staticmethod

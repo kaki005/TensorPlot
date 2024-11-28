@@ -17,6 +17,7 @@ class Series:
         self.title = ""
         self.regimes: list[Regime] = []
         self.title_font = 12
+        self.ylabel: str | None = None
 
     def set_title(self, title: str, font_size: int = 12):
         self.title = title
@@ -24,6 +25,9 @@ class Series:
 
     def set_legend(self, labels: list[str]):
         self.labels = labels
+
+    def set_ylabel(self, ylabel: str):
+        self.ylabel = ylabel
 
     def draw_background(
         self,
