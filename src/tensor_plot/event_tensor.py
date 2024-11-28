@@ -1,5 +1,6 @@
 import pickle
 from datetime import datetime
+from typing import cast
 
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
@@ -15,38 +16,59 @@ from .dense import BaseTensor
 
 @register_static
 class Entry:
+    """
+    Represents a single event entry within a tensor.
+
+    Attributes:
+        index (np.ndarray): Index values for the event entry (one per mode).
+        count (int): The count of this entry.
+        t (float): The time of event occurrence.
+    """
+
     def __init__(self, index: np.ndarray, count: int, t: float):
         self.index: np.ndarray = index
-        """(モード, 各モードのインデックス)"""
+        """Index values for the event entry (one per mode)."""
         self.count: int = count
-        """count of index time"""
+        """The count of this entry."""
         self.t: float = t
-        """event occurrence time"""
+        """ The time of event occurrence."""
 
 
 class Event:
-    """Set of event entries that occurred at the same time"""
+    """
+    A collection of entries that occurred at the same time.
+
+    Attributes:
+        t (float): Event occurrence time.
+        ndims (list[int]): Dimensionality of each mode.
+        entries (list[Entry]): List of event entries.
+        datetime (Timestamp | None): Optional timestamp for the event.
+    """
 
     def __init__(self, ndims, entries: list[Entry], t: float, dt: Timestamp | None = None):
         self.t: float = t
-        """event occurrence time"""
+        """ Event occurrence time."""
         self.ndims = ndims
-        """(mode, dimension of mode)"""
+        """Dimensionality of each mode."""
         self.entries: list[Entry] = entries
-        """list of index"""
+        """List of event entries."""
         self.datetime: Timestamp | None = dt
+        """Optional event occurence timestamp."""
 
     @property
     def count(self) -> int:
-        count = 0
-        for entry in self.entries:
-            count += entry.count
-        return count
+        """Calculates the total count (weight) across all entries."""
+        return sum(entry.count for entry in self.entries)
 
     @property
     def mode_counts(self) -> list[np.ndarray]:
-        """(mode, number of occurrences of each index in the mode)"""
-        mode_counts: list[np.ndarray] = []
+        """
+        Computes the counts for each mode.
+
+        Returns:
+            list[np.ndarray]: Count of occurrences for each index in every mode.
+        """
+        mode_counts = []
         for i, dim in enumerate(self.ndims):
             count = np.zeros(dim)
             for entry in self.entries:
@@ -56,94 +78,138 @@ class Event:
 
     @property
     def indexes(self) -> jnp.ndarray:
-        """(entry num, index of the entry)"""
+        """
+        Creates an array of indexes representing all occurrences of this event.
+
+        Returns:
+            jnp.ndarray: Array of entry indexes.
+        """
         indexes = []
         for entry in self.entries:
-            for _ in range(entry.count):
-                indexes.append(entry.index)
+            indexes.extend([entry.index] * entry.count)
         return jnp.array(indexes)
 
 
 class EventTensor(BaseTensor):
+    """
+    A tensor structure for storing and managing event data.
+
+    Attributes:
+        ndims (np.ndarray): Dimensionality of each mode.
+        columns (list[list[str]] | None): Optional column names for each mode.
+        st_date (datetime | None): Start datetime for the tensor data.
+        events (list[Event]): List of events in the tensor.
+        mode_titles (list[str] | None): Titles for each mode (used in visualization).
+    """
+
     def __init__(self, ndims: np.ndarray, columns: list[list[str]] | None = None, st_date: datetime | None = None):
         super().__init__()
         self.events: list[Event] = []
+        """List of events in the tensor."""
         self.st_date: datetime | None = st_date
-        """start datetime"""
+        """Start datetime for the tensor data."""
         self.ndims: np.ndarray = ndims
+        """Dimensionality of each mode."""
         self.columns: list[list[str]] | None = columns
-        """(mode, mode index, display name)"""
+        """Optional column names for each mode."""
         self.mode_titles: list[str] | None = None
+        """Titles for each mode (used in visualization)."""
 
     @property
     def tlist(self) -> list[float]:
-        """list of event occurene time"""
+        """Returns a list of event occurrence times."""
         return [event.t for event in self.events]
 
+    @property
+    def timestamps(self) -> list[Timestamp]:
+        """
+        Returns timestamps for events.
+
+        Raises:
+            Exception: If datetime information is missing.
+        """
+        stamps = []
+        for event in self.events:
+            if event.datetime is None:
+                raise Exception("Datetime is not set.")
+            stamps.append(event.datetime)
+        return stamps
+
     def append(self, event: Event):
+        """Adds a new event to the tensor."""
         self.events.append(event)
 
     def save(self, pkl_path: str):
+        """Serializes the tensor to a pickle file."""
         with open(pkl_path, "wb") as outp:
             pickle.dump(self, outp, pickle.HIGHEST_PROTOCOL)
 
     def set_titles(self, mode_titles: list[str]):
+        """Sets display titles for modes."""
         self.mode_titles = mode_titles
 
     def plot(self, save_path: str, marker="o", t_range: list[int] | None = None):
+        """
+        Creates a 3D scatter plot of the events.
+
+        Args:
+            save_path (str): Path to save the plot.
+            marker (str): Marker style for the plot.
+            t_range (list[int] | None): Time range for the x-axis.
+        """
         assert len(self.events) == 2
-        plt.clf()  # reset
+        plt.clf()
         fig = plt.figure(figsize=(10, 10))
         ax: Axes3D = Axes3D(fig)
         ax = fig.add_subplot(projection="3d")
+
         xs, ys, zs = [], [], []
         for event in self.events:
             for entry in event.entries:
-                for _ in range(entry.count):
-                    xs.append(event.t)
-                    ys.append(entry.index[0])
-                    zs.append(entry.index[1])
+                xs.extend([event.t] * entry.count)
+                ys.extend([entry.index[0]] * entry.count)
+                zs.extend([entry.index[1]] * entry.count)
 
         ax.scatter(xs, ys, zs, marker=marker)
-        ax.set_xlabel("time")
+        ax.set_xlabel("Time")
         ax.set_yticks(range(self.ndims[0]))
         ax.set_zticks(range(self.ndims[1]))
-        if t_range is not None:
+        if t_range:
             ax.set_xlim(t_range)
-        if self.columns is not None:
+        if self.columns:
             ax.set_yticklabels(self.columns[0])
             ax.set_zticklabels(self.columns[1])
+        ax.set_ylabel(self.mode_titles[0] if self.mode_titles else "Mode 0")
+        ax.set_zlabel(self.mode_titles[1] if self.mode_titles else "Mode 1")
 
-        if self.mode_titles is None:
-            ax.set_ylabel("mode 0")
-            ax.set_zlabel("mode 1")
-        else:
-            ax.set_ylabel(self.mode_titles[0])
-            ax.set_zlabel(self.mode_titles[1])
         plt.savefig(save_path)
 
     def plot_mode(self, mode: int, save_path: str, circle_size: float = 10.0):
-        x = []
-        y = []
-        plt.clf()  # reset
+        """
+        Plots events for a specific mode.
+
+        Args:
+            mode (int): Mode to plot.
+            save_path (str): Path to save the plot.
+            circle_size (float): Size of the points.
+        """
+        x, y = [], []
+        plt.clf()
         for event in self.events:
             for entry in event.entries:
-                for _ in range(entry.count):
-                    x.append(event.t)
-                    if self.columns is None:
-                        y.append(float(entry.index[mode]))
-                    else:
-                        y.append(self.columns[mode][entry.index[mode]])
+                x.extend([event.t] * entry.count)
+                y.extend(
+                    [self.columns[mode][entry.index[mode]] if self.columns else float(entry.index[mode])] * entry.count
+                )
         plt.scatter(x, y, s=circle_size)
-        if self.mode_titles is not None:
-            plt.ylabel(self.mode_titles[mode])
+        plt.ylabel(self.mode_titles[mode] if self.mode_titles else "")
         plt.tight_layout()
         plt.savefig(save_path)
 
 
 def load_event_tensor(pkl_path: str) -> EventTensor:
     with open(pkl_path, "rb") as inp:
-        return pickle.load(inp)
+        return cast(EventTensor, pickle.load(inp))
 
 
 def dataframe_to_event_tensor(
