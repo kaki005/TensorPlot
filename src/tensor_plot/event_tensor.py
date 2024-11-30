@@ -57,7 +57,7 @@ class Event:
 
     @property
     def count(self) -> int:
-        """Calculates the total count (weight) across all entries."""
+        """Calculates the total count across all entries."""
         return sum(entry.count for entry in self.entries)
 
     @property
@@ -134,6 +134,19 @@ class EventTensor(BaseTensor):
                 raise Exception("Datetime is not set.")
             stamps.append(event.datetime)
         return stamps
+
+    @property
+    def count(self) -> int:
+        """Calculates the total count across all entries."""
+        return sum(event.count for event in self.events)
+
+    @property
+    def all_entries(self) -> list[Entry]:
+        entries = []
+        for event in self.events:
+            for entry in event.entries:
+                entries.extend([Entry(entry.index, 1, entry.t)] * entry.count)
+        return entries
 
     def append(self, event: Event):
         """Adds a new event to the tensor."""
