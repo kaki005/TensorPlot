@@ -230,30 +230,8 @@ def dataframe_to_event_tensor(
     Returns:
         tuple[EventTensor, OrdinalEncoder,LabelEncoder]: (event_tensor, encoder)
     """
-    data = given_data.copy(deep=True)
-    target_col = categorical_idxs + [time_idx]
-    if quatntity_idx is not None:
-        target_col += [quatntity_idx]
-    data = data.dropna(subset=(target_col))
-    data = data[target_col]
-
-    # Encode timestamps
-    data[time_idx] = pd.to_datetime(data[time_idx])
-    data[time_idx] = data[time_idx].dt.round(freq)
-    data = data.sort_values(time_idx)
+    data, oe, timepoint_encoder = encode_dataframe(given_data, categorical_idxs, time_idx, freq, quatntity_idx)
     start = data[time_idx].min()
-    end = data[time_idx].max()
-    ticks = pd.date_range(start, end, freq=freq)
-    timepoint_encoder = LabelEncoder()
-    timepoint_encoder.fit(ticks)
-    data[f"old_{time_idx}"] = data[time_idx]
-    data[time_idx] = timepoint_encoder.transform(data[time_idx])
-
-    # Encode categorical features
-    oe = OrdinalEncoder()
-    data[categorical_idxs] = oe.fit_transform(data[categorical_idxs])
-    data[categorical_idxs] = data[categorical_idxs].astype(int)
-    data = data.reset_index(drop=True)
     ndims = data[categorical_idxs].max().values + 1
     event_tensors: EventTensor = EventTensor(ndims, oe.categories_, start)
     for dt in data[time_idx].unique():
@@ -297,3 +275,49 @@ def rows_to_event(t: float, rows, targets: list[str], ndims, quatntity_idx: str 
         else:
             entries.append(Entry(np.array([row.loc[col] for col in targets]), 1, t))
     return Event(ndims, entries, t, timestamp)
+
+
+def encode_dataframe(
+    given_data: pd.DataFrame,
+    categorical_idxs: list[str],
+    time_idx: str,
+    freq: str,
+    quatntity_idx: str | None,
+) -> tuple[pd.DataFrame, OrdinalEncoder, LabelEncoder]:
+    """DataFrameのtime_idxをTimeStampにエンコードし、categorical_idxsの各列を0,1,2にエンコードします。
+
+    Args:
+        given_data (pd.DataFrame): _description_
+        categorical_idxs (list[str]): _description_
+        time_idx (str):
+        freq (str): _description_
+        quatntity_idx (str | None): _description_
+
+    Returns:
+        tuple[pd.DataFrame, OrdinalEncoder, LabelEncoder]: encoded DataFrame and encoder.
+    """
+    data = given_data.copy(deep=True)
+    target_col = categorical_idxs + [time_idx]
+    if quatntity_idx is not None:
+        target_col += [quatntity_idx]
+    data = data.dropna(subset=(target_col))
+    data = data[target_col]
+
+    # Encode timestamps
+    data[time_idx] = pd.to_datetime(data[time_idx])
+    data[time_idx] = data[time_idx].dt.round(freq)
+    data = data.sort_values(time_idx)
+    start = data[time_idx].min()
+    end = data[time_idx].max()
+    ticks = pd.date_range(start, end, freq=freq)
+    timepoint_encoder = LabelEncoder()
+    timepoint_encoder.fit(ticks)
+    data[f"old_{time_idx}"] = data[time_idx]
+    data[time_idx] = timepoint_encoder.transform(data[time_idx])
+
+    # Encode categorical features
+    oe = OrdinalEncoder()
+    data[categorical_idxs] = oe.fit_transform(data[categorical_idxs])
+    data[categorical_idxs] = data[categorical_idxs].astype(int)
+    data = data.reset_index(drop=True)
+    return data, oe, timepoint_encoder
