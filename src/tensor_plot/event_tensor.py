@@ -139,6 +139,24 @@ class EventTensor(BaseTensor):
         """Adds a new event to the tensor."""
         self.events.append(event)
 
+    def encode_coo(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """スパーステンソルの表現形式の1つであるCOOにエンコードします。
+
+        Returns:
+            tuple[np.ndarray, np.ndarray,np.ndarray]:
+             (全非ゼロ値を含む1次元行列,
+              非ゼロ値のインデックスを含む、[N, rank] の形状を持つ 2 次元テンソル
+              テンソルの形状を指定する、形状 [rank] を持つ 1 次元テンソル。 )
+        """
+        data = []
+        indices = []
+        for event in self.events:
+            for entry in event.entries:
+                data.append(entry.count)
+                indices.append(np.append(event.t, entry.index))
+        dense_shape = np.append(len(self.events), self.ndims)
+        return np.stack(data), np.stack(indices), dense_shape
+
     def save(self, pkl_path: str):
         """Serializes the tensor to a pickle file."""
         with open(pkl_path, "wb") as outp:
