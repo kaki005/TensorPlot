@@ -141,12 +141,18 @@ class EventTensor(BaseTensor):
         return sum(event.count for event in self.events)
 
     @property
-    def all_entries(self) -> list[Entry]:
+    def flatten_entries(self) -> tuple[list[Entry], list[int], list[bool]]:
         entries = []
-        for event in self.events:
-            for entry in event.entries:
+        time_index = []
+        is_last_entry = []
+        for i, event in enumerate(self.events):
+            for j, entry in enumerate(event.entries):
                 entries.extend([Entry(entry.index, 1, entry.t)] * entry.count)
-        return entries
+                time_index.extend([i] * entry.count)
+                for _ in range(entry.count - 1):
+                    is_last_entry.append(False)
+                is_last_entry.append(j == len(event.entries) - 1)
+        return entries, time_index, is_last_entry
 
     def append(self, event: Event):
         """Adds a new event to the tensor."""
