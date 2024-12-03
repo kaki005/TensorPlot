@@ -141,6 +141,13 @@ class EventTensor(BaseTensor):
         return sum(event.count for event in self.events)
 
     @property
+    def entries(self) -> list[Entry]:
+        entries = []
+        for event in self.events:
+            entries.extend(event.entries)
+        return entries
+
+    @property
     def flatten_entries(self) -> tuple[list[Entry], list[int], list[bool]]:
         entries = []
         time_index = []
@@ -158,7 +165,7 @@ class EventTensor(BaseTensor):
         """Adds a new event to the tensor."""
         self.events.append(event)
 
-    def encode_coo(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def to_coo(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """スパーステンソルの表現形式の1つであるCOOにエンコードします。
 
         Returns:
@@ -176,6 +183,25 @@ class EventTensor(BaseTensor):
         dense_shape = np.append(len(self.events), self.ndims)
         return np.stack(data), np.stack(indices), dense_shape
 
+    def to_dataframe(self, expand_row=True, include_timestamp: bool = True) -> pd.DataFrame:
+        dic = {}
+        dic["time"] = [entry.t for entry in self.entries]
+        dic["amount"] = [entry.count for entry in self.entries]
+        if include_timestamp:
+            timestamps = []
+            for event in self.events:
+                if event.datetime is None:
+                    raise Exception("datetimeがNoneです。")
+                timestamps.extend([event.datetime] * len(event.entries))
+            dic["timestamp"] = timestamps
+        for mode, dim in enumerate(self.ndims):
+            col_name = f"mode{mode+1}" if self.mode_titles is None else self.mode_titles[mode]
+            dic[col_name] = [entry.index[mode] for entry in self.entries]
+        df = pd.DataFrame(dic)
+        if expand_row:  # 行を拡大するなら(個数分だけ行を増やす。)
+            df = df_expand_row(df, "amount")
+        return df
+
     def save(self, pkl_path: str):
         """Serializes the tensor to a pickle file."""
         with open(pkl_path, "wb") as outp:
@@ -183,7 +209,12 @@ class EventTensor(BaseTensor):
 
     def set_titles(self, mode_titles: list[str]):
         """Sets display titles for modes."""
-        self.mode_titles = mode_titles
+        xs, ys, zs = [], [], []
+        for event in self.events:
+            for entry in event.entries:
+                xs.extend([event.t] * entry.count)
+                ys.extend([entry.index[0]] * entry.count)
+                zs.extend([entry.index[1]] * entry.count)
 
     def plot(self, save_path: str, marker="o", t_range: list[int] | None = None):
         """
@@ -274,44 +305,22 @@ def dataframe_to_event_tensor(
     for dt in data[time_idx].unique():
         current = data[data[time_idx] == dt].reset_index()
         timestamp: Timestamp = current[f"old_{time_idx}"][0]
-        rows_num = current.shape[0]
-        if rows_num > 1:
-            input = [current.iloc[i] for i in range(rows_num)]
-            event_tensors.append(rows_to_event(dt, input, categorical_idxs, ndims, quatntity_idx, timestamp))
-        else:
-            event_tensors.append(
-                rows_to_event(dt, [current.iloc[0]], categorical_idxs, ndims, quatntity_idx, timestamp)
-            )
-    return event_tensors, oe, timepoint_encoder
-
-
-def rows_to_event(t: float, rows, targets: list[str], ndims, quatntity_idx: str | None, timestamp: Timestamp) -> Event:
-    """convert Series column to Event
-
-    Args:
-        t (float): current time
-        rows (_type_): _description_
-        targets (list[str]): list of target column
-        ndims (np.ndarray): 各モードの次元
-
-    Returns:
-        Event: _description_
-    """
-    entries: list[Entry] = []
-    for row in rows:
-        if quatntity_idx is not None:
-            entries.append(
-                Entry(
-                    np.array([row.loc[col] for col in targets]),
-                    int(
-                        row[quatntity_idx],
-                    ),
-                    t,
+        entries: list[Entry] = []
+        for _, row in current.iterrows():  # 行ごとに
+            if quatntity_idx is not None:  # 個数があれば
+                entries.append(
+                    Entry(
+                        np.array([row[col] for col in categorical_idxs]),
+                        int(row[quatntity_idx]),
+                        dt,
+                    )
                 )
-            )
-        else:
-            entries.append(Entry(np.array([row.loc[col] for col in targets]), 1, t))
-    return Event(ndims, entries, t, timestamp)
+            else:
+                entries.append(
+                    Entry(np.array([row[col] for col in categorical_idxs]), 1, dt)
+                )  # 個数列がなければ1個とする。
+        event_tensors.append(Event(ndims, entries, dt, timestamp))
+    return event_tensors, oe, timepoint_encoder
 
 
 def encode_dataframe(
@@ -358,3 +367,24 @@ def encode_dataframe(
     data[categorical_idxs] = data[categorical_idxs].astype(int)
     data = data.reset_index(drop=True)
     return data, oe, timepoint_encoder
+
+
+def df_expand_row(df: pd.DataFrame, amount_col: str, set_amount_1: bool = True) -> pd.DataFrame:
+    """各行に対して`amount_col`列の個数分だけ行を増やした新しいDataFrameを増やします。
+
+    Args:
+        df (pd.DataFrame): もとのDataFrame
+        amount_col (str): 個数を表す列名
+        set_amount_1(bool): 個数を1に設定
+
+    Returns:
+        pd.DataFrame: 行を増やしたDataFrame
+    """
+    # 1. `df.index.repeat`で各行のインデックスをamount列の値だけ繰り返します。
+    # 2. `loc[..]`で 繰り返されたインデックスに基づいて、DataFrameを拡張します。
+    # 3. `reset_index` でインデックスをリセットし、元のインデックスを破棄します。
+
+    expanded_df = df.loc[df.index.repeat(df[amount_col])].reset_index(drop=True)
+    if set_amount_1:
+        expanded_df[amount_col] = 1
+    return expanded_df

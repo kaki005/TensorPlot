@@ -122,7 +122,7 @@ requests==2.32.3
     # via wandb
 scikit-learn==1.5.1
     # via tensorplot
-scipy==1.14.0
+scipy==1.14.1
     # via jax
     # via jaxlib
     # via scikit-learn
