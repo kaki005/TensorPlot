@@ -27,3 +27,4 @@ class TuckerTensor(BaseTensor):
             axes[i + 1].set_title(f"Factor Matrix {i+1}")
         plt.tight_layout()
         plt.savefig(save_path)
+        plt.close()

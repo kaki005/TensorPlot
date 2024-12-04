@@ -249,8 +249,8 @@ class EventTensor(BaseTensor):
             ax.set_zticklabels(self.columns[1])
         ax.set_ylabel(self.mode_titles[0] if self.mode_titles else "Mode 0")
         ax.set_zlabel(self.mode_titles[1] if self.mode_titles else "Mode 1")
-
         plt.savefig(save_path)
+        plt.close()
 
     def plot_mode(self, mode: int, save_path: str, circle_size: float = 10.0):
         """
@@ -273,6 +273,7 @@ class EventTensor(BaseTensor):
         plt.ylabel(self.mode_titles[mode] if self.mode_titles else "")
         plt.tight_layout()
         plt.savefig(save_path)
+        plt.close()
 
 
 def load_event_tensor(pkl_path: str) -> EventTensor:
