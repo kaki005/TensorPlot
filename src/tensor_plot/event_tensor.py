@@ -209,12 +209,8 @@ class EventTensor(BaseTensor):
 
     def set_titles(self, mode_titles: list[str]):
         """Sets display titles for modes."""
-        xs, ys, zs = [], [], []
-        for event in self.events:
-            for entry in event.entries:
-                xs.extend([event.t] * entry.count)
-                ys.extend([entry.index[0]] * entry.count)
-                zs.extend([entry.index[1]] * entry.count)
+        assert len(self.ndims) == len(mode_titles)
+        self.mode_titles = mode_titles
 
     def plot(self, save_path: str, marker="o", t_range: list[int] | None = None):
         """
@@ -225,7 +221,7 @@ class EventTensor(BaseTensor):
             marker (str): Marker style for the plot.
             t_range (list[int] | None): Time range for the x-axis.
         """
-        assert len(self.events) == 2
+        assert len(self.ndims) == 2
         plt.clf()
         fig = plt.figure(figsize=(10, 10))
         ax: Axes3D = Axes3D(fig)
@@ -303,6 +299,7 @@ def dataframe_to_event_tensor(
     start = data[time_idx].min()
     ndims = data[categorical_idxs].max().values + 1
     event_tensors: EventTensor = EventTensor(ndims, oe.categories_, start)
+    event_tensors.set_titles(categorical_idxs)
     for dt in data[time_idx].unique():
         current = data[data[time_idx] == dt].reset_index()
         timestamp: Timestamp = current[f"old_{time_idx}"][0]
@@ -360,7 +357,7 @@ def encode_dataframe(
     timepoint_encoder = LabelEncoder()
     timepoint_encoder.fit(ticks)
     data[f"old_{time_idx}"] = data[time_idx]
-    data[time_idx] = timepoint_encoder.transform(data[time_idx])
+    data[time_idx] = timepoint_encoder.transform(data[time_idx]) * 1.0
 
     # Encode categorical features
     oe = OrdinalEncoder()
