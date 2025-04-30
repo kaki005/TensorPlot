@@ -212,7 +212,7 @@ class EventTensor(BaseTensor):
         assert len(self.ndims) == len(mode_titles)
         self.mode_titles = mode_titles
 
-    def plot(self, save_path: str, marker="o", t_range: list[int] | None = None):
+    def plot(self, save_path: str, marker="o", y_index = 0, z_index=1, show_axistitle:bool = True,transparent:bool = False,  t_range: list[int] | None = None):
         """
         Creates a 3D scatter plot of the events.
 
@@ -221,7 +221,6 @@ class EventTensor(BaseTensor):
             marker (str): Marker style for the plot.
             t_range (list[int] | None): Time range for the x-axis.
         """
-        assert len(self.ndims) == 2
         plt.clf()
         fig = plt.figure(figsize=(10, 10))
         ax: Axes3D = Axes3D(fig)
@@ -230,22 +229,29 @@ class EventTensor(BaseTensor):
         xs, ys, zs = [], [], []
         for event in self.events:
             for entry in event.entries:
+                if t_range is not None:
+                    if event.t < t_range[0] or t_range[1] < event.t:
+                        continue
                 xs.extend([event.t] * entry.count)
-                ys.extend([entry.index[0]] * entry.count)
-                zs.extend([entry.index[1]] * entry.count)
+                ys.extend([entry.index[y_index]] * entry.count)
+                zs.extend([entry.index[z_index]] * entry.count)
 
         ax.scatter(xs, ys, zs, marker=marker)
         ax.set_xlabel("Time")
-        ax.set_yticks(range(self.ndims[0]))
-        ax.set_zticks(range(self.ndims[1]))
         if t_range:
             ax.set_xlim(t_range)
         if self.columns:
-            ax.set_yticklabels(self.columns[0])
-            ax.set_zticklabels(self.columns[1])
-        ax.set_ylabel(self.mode_titles[0] if self.mode_titles else "Mode 0")
-        ax.set_zlabel(self.mode_titles[1] if self.mode_titles else "Mode 1")
-        plt.savefig(save_path)
+            ax.set_yticks(range(self.ndims[y_index]))
+            ax.set_zticks(range(self.ndims[z_index]))
+            ax.set_yticklabels(self.columns[y_index])
+            ax.set_zticklabels(self.columns[z_index])
+        else:
+            ax.set_yticks(range(0, self.ndims[y_index], 5000))
+            ax.set_zticks(range(0, self.ndims[z_index],1000))
+        if show_axistitle:
+            ax.set_ylabel(self.mode_titles[y_index] if self.mode_titles else "Mode 0")
+            ax.set_zlabel(self.mode_titles[z_index] if self.mode_titles else "Mode 1")
+        plt.savefig(save_path, transparent=transparent)
         plt.close()
 
     def plot_mode(self, mode: int, save_path: str, circle_size: float = 10.0):
